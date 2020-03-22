@@ -1,10 +1,58 @@
+const path = require("path");
+const http = require("http");
 const express = require("express");
-
+// require时实际返回了一个function
+const socketio = require("socket.io");
+const Filter = require("bad-words");
 const app = express();
+const server = http.createServer(app);
+// 使用socketio function to configure socketio to work with a given server
+// 注意这里的socketio只能接收http server所以我们上面使用http module创建server
+const io = socketio(server);
 
-app.use("public");
+const port = process.env.PORT || 3000;
+const publicDirPath = path.join(__dirname, "../public");
 
-const port = 3000;
-app.listen(port, () => {
+app.use(express.static(publicDirPath));
+
+// print a message when a new client connects
+io.on("connection", socket => {
+	console.log("server connection!");
+	socket.emit("message", "Welcome!");
+	socket.broadcast.emit("message", "A new user joined");
+
+	// Server listen for sendMessage event
+	socket.on("sendMessage", (messageInput, callback) => {
+		const filter = new Filter();
+		if (filter.isProfane(messageInput)) {
+			// setup the server to send back acknowledgement and will not emit message event because of the error
+			return callback("Profanity is not allowed!");
+		}
+
+		// send messages to all connected client
+		io.emit("message", messageInput);
+
+		// setup the server to send back acknowledgement
+		callback();
+	});
+
+	// listen for sendLocation event
+	socket.on("sendLocation", ({ latitude, longitude }, callback) => {
+		// When fired, send a message to all connected clients
+		io.emit(
+			"message",
+			`https://google.com/maps?q=${latitude},${longitude}`
+		);
+		// setup the server to send back acknowledgement
+		callback();
+	});
+
+	// send a message when a client get disconnected
+	socket.on("disconnect", () => {
+		io.emit("message", "A user has left");
+	});
+});
+
+server.listen(port, () => {
 	console.log("Server Connected to port ", port);
 });
