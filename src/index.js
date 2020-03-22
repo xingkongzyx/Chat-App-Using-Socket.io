@@ -4,7 +4,10 @@ const express = require("express");
 // require时实际返回了一个function
 const socketio = require("socket.io");
 const Filter = require("bad-words");
-const { generateMessage } = require("./utils/messages");
+const {
+	generateMessage,
+	generateLocationMessage
+} = require("./utils/messages");
 
 const app = express();
 const server = http.createServer(app);
@@ -43,7 +46,9 @@ io.on("connection", socket => {
 		// When fired, send an event with url to all connected clients
 		io.emit(
 			"locationMessage",
-			`https://google.com/maps?q=${latitude},${longitude}`
+			generateLocationMessage(
+				`https://google.com/maps?q=${latitude},${longitude}`
+			)
 		);
 		// setup the server to send back acknowledgement
 		callback();

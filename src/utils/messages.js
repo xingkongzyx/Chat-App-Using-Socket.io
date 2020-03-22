@@ -7,4 +7,8 @@ const generateMessage = text => {
 	};
 };
 
-module.exports = { generateMessage };
+// 用于发送location信息到另一端的方程
+const generateLocationMessage = url => {
+	return { url, createdAt: new Date().getTime() };
+};
+module.exports = { generateMessage, generateLocationMessage };

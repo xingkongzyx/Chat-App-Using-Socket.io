@@ -15,7 +15,7 @@ socket.on("message", message => {
 	// Compile the template with data
 	const html = Mustache.render(messageTemplate, {
 		message: message.text,
-		// 伴随接收的message object同时也接受了message object, 包含{text:String,createdAt:timeStamp}
+		// 接收的是message object, 包含 message === {text:String,createdAt:timeStamp}
 		createdAt: moment(message.createdAt).format(
 			"dddd, MMMM Do YYYY, h:mm:ss a"
 		)
@@ -25,9 +25,13 @@ socket.on("message", message => {
 });
 
 // client listen for locationMessage event
-socket.on("locationMessage", url => {
-	console.log(url);
-	const html = Mustache.render(locationTemplate, { locationURL: url });
+socket.on("locationMessage", message => {
+    // 接收的是url object, 包含 url === {url:String,createdAt:timeStamp}
+	console.log(message);
+	const html = Mustache.render(locationTemplate, {
+		locationURL: message.url,
+		createdAt: moment(message.createdAt).format("dddd, MMMM Do YYYY, h:mm:ss a")
+	});
 	$messages.insertAdjacentHTML("beforeend", html);
 });
 
