@@ -4,6 +4,8 @@ const express = require("express");
 // require时实际返回了一个function
 const socketio = require("socket.io");
 const Filter = require("bad-words");
+const { generateMessage } = require("./utils/messages");
+
 const app = express();
 const server = http.createServer(app);
 // 使用socketio function to configure socketio to work with a given server
@@ -18,8 +20,8 @@ app.use(express.static(publicDirPath));
 // print a message when a new client connects
 io.on("connection", socket => {
 	console.log("server connection!");
-	socket.emit("message", "Welcome!");
-	socket.broadcast.emit("message", "A new user joined");
+	socket.emit("message", generateMessage("Welcome!"));
+	socket.broadcast.emit("message", generateMessage("A new user joined"));
 
 	// Server listen for sendMessage event
 	socket.on("sendMessage", (messageInput, callback) => {
@@ -30,7 +32,7 @@ io.on("connection", socket => {
 		}
 
 		// send messages to all connected client
-		io.emit("message", messageInput);
+		io.emit("message", generateMessage(messageInput));
 
 		// setup the server to send back acknowledgement
 		callback();
@@ -38,9 +40,9 @@ io.on("connection", socket => {
 
 	// listen for sendLocation event
 	socket.on("sendLocation", ({ latitude, longitude }, callback) => {
-		// When fired, send a message to all connected clients
+		// When fired, send an event with url to all connected clients
 		io.emit(
-			"message",
+			"locationMessage",
 			`https://google.com/maps?q=${latitude},${longitude}`
 		);
 		// setup the server to send back acknowledgement
@@ -49,7 +51,7 @@ io.on("connection", socket => {
 
 	// send a message when a client get disconnected
 	socket.on("disconnect", () => {
-		io.emit("message", "A user has left");
+		io.emit("message", generateMessage("A user has left"));
 	});
 });
 

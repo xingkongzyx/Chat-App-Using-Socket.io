@@ -1,28 +1,49 @@
+const $messageForm = document.querySelector("#messageForm");
+const $messageFormInput = $messageForm.querySelector("input");
+const $messageFormButton = $messageForm.querySelector("button");
+const $sendLocationButton = document.querySelector("#send-location");
+const $messages = document.querySelector("#messages");
+
+const messageTemplate = document.querySelector("#message-template").innerHTML;
+const locationTemplate = document.querySelector("#location-template").innerHTML;
+
 // 由于在html文件配置了socketio js
 const socket = io();
 
 socket.on("message", message => {
 	console.log(message);
+	// Compile the template with data
+	const html = Mustache.render(messageTemplate, {
+		message: message.text,
+		// 伴随接收的message object同时也接受了message object, 包含{text:String,createdAt:timeStamp}
+		createdAt: moment(message.createdAt).format(
+			"dddd, MMMM Do YYYY, h:mm:ss a"
+		)
+	});
+	// add html to document
+	$messages.insertAdjacentHTML("beforeend", html);
 });
 
-const $messageForm = document.querySelector("#messageForm");
-const $messageFormInput = $messageForm.querySelector("input");
-const $messageFormButton = $messageForm.querySelector("button");
-const $sendLocationButton = document.querySelector("#send-location");
+// client listen for locationMessage event
+socket.on("locationMessage", url => {
+	console.log(url);
+	const html = Mustache.render(locationTemplate, { locationURL: url });
+	$messages.insertAdjacentHTML("beforeend", html);
+});
 
 // set up event listener for form submission
 $messageForm.addEventListener("submit", event => {
 	const messageInput = event.target.elements.message.value;
-    event.preventDefault();
-    // 当信息发送过程中不允许继续发送下一条信息
-    $messageFormButton.setAttribute("disabled", "disabled")
+	event.preventDefault();
+	// 当信息发送过程中不允许继续发送下一条信息
+	$messageFormButton.setAttribute("disabled", "disabled");
 	// Emit sendMessage event && set up the client acknowledgement function
 	socket.emit("sendMessage", messageInput, error => {
-        // 当确认event被acknowledged，enable the button
-        $messageFormButton.removeAttribute("disabled");
-        // 清除input的值，并使焦点重新聚集到input上
-        $messageFormInput.value = ""
-        $messageFormInput.focus();
+		// 当确认event被acknowledged，enable the button
+		$messageFormButton.removeAttribute("disabled");
+		// 清除input的值，并使焦点重新聚集到input上
+		$messageFormInput.value = "";
+		$messageFormInput.focus();
 
 		if (error) {
 			return console.log(error);
@@ -38,17 +59,17 @@ $sendLocationButton.addEventListener("click", () => {
 		return alert(
 			"Do not have location service, please change another browser"
 		);
-    }
-    // 在获取到位置之前disable the button
-    $sendLocationButton.setAttribute("disabled", "disabled");
-    
+	}
+	// 在获取到位置之前disable the button
+	$sendLocationButton.setAttribute("disabled", "disabled");
+
 	navigator.geolocation.getCurrentPosition(position => {
 		const { latitude, longitude } = position.coords;
 		// Client emit snedLocation event && set up the client acknowledgement function
 		socket.emit("sendLocation", { latitude, longitude }, () => {
-            console.log("location shared!");
-            // 在进入到acknowledge callback之后启动button
-            $sendLocationButton.removeAttribute("disabled")
+			console.log("location shared!");
+			// 在进入到acknowledge callback之后启动button
+			$sendLocationButton.removeAttribute("disabled");
 		});
 	});
 });
