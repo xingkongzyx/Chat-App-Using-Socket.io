@@ -8,6 +8,12 @@ const {
 	generateMessage,
 	generateLocationMessage
 } = require("./utils/messages");
+const {
+	addUser,
+	removeUser,
+	getUser,
+	getUsersInRoom
+} = require("./utils/users");
 
 const app = express();
 const server = http.createServer(app);
@@ -26,16 +32,25 @@ io.on("connection", socket => {
 
 	// client sends username and room, and server makes that user to join
 	// listener for join
-	socket.on("join", ({ username, room }) => {
-        // Join a room, 只能在server使用
-        // 有room概念后给了我们新的一种发送event的形式，就是发送event到特定room
-		socket.join(room);
+	socket.on("join", (options, callback) => {
+		// 要不返回username要不返回id
+        const { error, user } = addUser({ id: socket.id, ...options});
+		if (error) {
+			// 有错误call callback with error
+			return callback(error);
+        }
+        console.log(user);
+		// Join a room, 只能在server使用
+		// 有room概念后给了我们新的一种发送event的形式，就是发送event到特定room
+		socket.join(user.room);
 		// Emit message in the same room
 		socket.emit("message", generateMessage("Welcome!"));
 
 		socket.broadcast
-			.to(room)
-			.emit("message", generateMessage(`${username} has joined!`));
+			.to(user.room)
+			.emit("message", generateMessage(`${user.username} has joined!`));
+		// 一切顺利调用callback
+		callback();
 	});
 
 	// Server listen for sendMessage event
@@ -68,7 +83,15 @@ io.on("connection", socket => {
 
 	// send a message when a client get disconnected
 	socket.on("disconnect", () => {
-		io.emit("message", generateMessage("A user has left"));
+		// remove user after disconnecting, result will be a removed user or undefined
+		const user = removeUser(socket.id);
+		// If there is a real user being removed
+		if (user) {
+			io.to(user.room).emit(
+				"message",
+				generateMessage(`${user.username} has left ${user.room}`)
+			);
+		}
 	});
 });
 

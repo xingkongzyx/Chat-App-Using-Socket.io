@@ -19,9 +19,10 @@ const addUser = ({ id, username, room }) => {
 		return { error: "Username is in use!" };
 	}
 	// store the user
-	const user = { id, username, room };
+    const user = { id, username, room };
 	users.push(user);
-	return user;
+    console.log("users are ", users);
+	return {user};
 };
 
 const removeUser = id => {
@@ -35,10 +36,16 @@ const removeUser = id => {
 		return users.splice(userIndex, 1)[0];
 	}
 };
+// Get a specific user by the userid
+const getUser = id => {
+	const user = users.find(user => user.id === id);
+	return user;
+};
 
-addUser({ id: 22, username: "yuxuan", room: "test1" });
-console.log(users);
+// get all users in a specifil user room
+const getUsersInRoom = room => {
+	room = room.trim().toLowerCase();
+	return users.filter(user => user.room === room);
+};
 
-const res = removeUser(22);
-console.log(res);
-console.log(users);
+module.exports = { addUser, removeUser, getUser, getUsersInRoom };

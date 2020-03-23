@@ -15,7 +15,7 @@ const { username, room } = Qs.parse(location.search, {
 	ignoreQueryPrefix: true
 });
 
-console.log(`username is ${username}, room is ${room}`)
+console.log(`username is ${username}, room is ${room}`);
 
 socket.on("message", message => {
 	console.log(message);
@@ -87,5 +87,11 @@ $sendLocationButton.addEventListener("click", () => {
 	});
 });
 
-// 从client向server发送event伴随username和room
-socket.emit("join", { username, room });
+// 从client向server发送event伴随username和room, 第三个参数是acknowledge callback
+socket.emit("join", { username, room }, error => {
+	if (error) {
+		alert(error);
+		// 返回首页
+		location.href = "/";
+	}
+});
