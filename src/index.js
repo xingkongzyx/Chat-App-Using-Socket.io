@@ -34,35 +34,41 @@ io.on("connection", socket => {
 	// listener for join
 	socket.on("join", (options, callback) => {
 		// 要不返回username要不返回id
-        const { error, user } = addUser({ id: socket.id, ...options});
+		const { error, user } = addUser({ id: socket.id, ...options });
 		if (error) {
 			// 有错误call callback with error
 			return callback(error);
-        }
-        console.log(user);
+		}
+		console.log(user);
 		// Join a room, 只能在server使用
 		// 有room概念后给了我们新的一种发送event的形式，就是发送event到特定room
 		socket.join(user.room);
 		// Emit message in the same room
-		socket.emit("message", generateMessage("Welcome!"));
+		socket.emit("message", generateMessage("Admin","Welcome!"));
 
 		socket.broadcast
 			.to(user.room)
-			.emit("message", generateMessage(`${user.username} has joined!`));
+			.emit("message", generateMessage("Admin", `${user.username} has joined!`));
 		// 一切顺利调用callback
 		callback();
 	});
 
 	// Server listen for sendMessage event
 	socket.on("sendMessage", (messageInput, callback) => {
+		// get user data with the id
+		const user = getUser(socket.id);
+		// if user === undefined
+		if (!user) {
+			return callback("Please try again!");
+		}
 		const filter = new Filter();
 		if (filter.isProfane(messageInput)) {
 			// setup the server to send back acknowledgement and will not emit message event because of the error
 			return callback("Profanity is not allowed!");
 		}
 
-		// send messages to all connected client
-		io.to("testroom").emit("message", generateMessage(messageInput));
+		// emit message to their current room
+		io.to(user.room).emit("message", generateMessage(user.username, messageInput));
 
 		// setup the server to send back acknowledgement
 		callback();
@@ -70,10 +76,17 @@ io.on("connection", socket => {
 
 	// listen for sendLocation event
 	socket.on("sendLocation", ({ latitude, longitude }, callback) => {
+		// get user data with the id
+		const user = getUser(socket.id);
+		// if user === undefined
+		if (!user) {
+			return callback("Please try again!");
+		}
 		// When fired, send an event with url to all connected clients
-		io.emit(
+		io.to(user.room).emit(
 			"locationMessage",
 			generateLocationMessage(
+                user.username,
 				`https://google.com/maps?q=${latitude},${longitude}`
 			)
 		);
@@ -89,7 +102,7 @@ io.on("connection", socket => {
 		if (user) {
 			io.to(user.room).emit(
 				"message",
-				generateMessage(`${user.username} has left ${user.room}`)
+				generateMessage("Admin", `${user.username} has left room ${user.room}`)
 			);
 		}
 	});

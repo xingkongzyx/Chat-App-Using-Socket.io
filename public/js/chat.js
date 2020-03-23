@@ -21,6 +21,7 @@ socket.on("message", message => {
 	console.log(message);
 	// Compile the template with data
 	const html = Mustache.render(messageTemplate, {
+        username: message.username,
 		message: message.text,
 		// 接收的是message object, 包含 message === {text:String,createdAt:timeStamp}
 		createdAt: moment(message.createdAt).format(
@@ -36,6 +37,7 @@ socket.on("locationMessage", message => {
 	// 接收的是url object, 包含 url === {url:String,createdAt:timeStamp}
 	console.log(message);
 	const html = Mustache.render(locationTemplate, {
+        username: message.username,
 		locationURL: message.url,
 		createdAt: moment(message.createdAt).format(
 			"dddd, MMMM Do YYYY, h:mm:ss a"
@@ -59,7 +61,7 @@ $messageForm.addEventListener("submit", event => {
 		$messageFormInput.focus();
 
 		if (error) {
-			return console.log(error);
+			return alert(error);
 		}
 		// Console log when acknowledged
 		console.log("The message was delivered!");
@@ -79,7 +81,10 @@ $sendLocationButton.addEventListener("click", () => {
 	navigator.geolocation.getCurrentPosition(position => {
 		const { latitude, longitude } = position.coords;
 		// Client emit snedLocation event && set up the client acknowledgement function
-		socket.emit("sendLocation", { latitude, longitude }, () => {
+		socket.emit("sendLocation", { latitude, longitude }, error => {
+			if (error) {
+				return alert(error);
+			}
 			console.log("location shared!");
 			// 在进入到acknowledge callback之后启动button
 			$sendLocationButton.removeAttribute("disabled");
