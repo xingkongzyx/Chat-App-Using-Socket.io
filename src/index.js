@@ -23,8 +23,20 @@ app.use(express.static(publicDirPath));
 // print a message when a new client connects
 io.on("connection", socket => {
 	console.log("server connection!");
-	socket.emit("message", generateMessage("Welcome!"));
-	socket.broadcast.emit("message", generateMessage("A new user joined"));
+
+	// client sends username and room, and server makes that user to join
+	// listener for join
+	socket.on("join", ({ username, room }) => {
+        // Join a room, 只能在server使用
+        // 有room概念后给了我们新的一种发送event的形式，就是发送event到特定room
+		socket.join(room);
+		// Emit message in the same room
+		socket.emit("message", generateMessage("Welcome!"));
+
+		socket.broadcast
+			.to(room)
+			.emit("message", generateMessage(`${username} has joined!`));
+	});
 
 	// Server listen for sendMessage event
 	socket.on("sendMessage", (messageInput, callback) => {
@@ -35,7 +47,7 @@ io.on("connection", socket => {
 		}
 
 		// send messages to all connected client
-		io.emit("message", generateMessage(messageInput));
+		io.to("testroom").emit("message", generateMessage(messageInput));
 
 		// setup the server to send back acknowledgement
 		callback();

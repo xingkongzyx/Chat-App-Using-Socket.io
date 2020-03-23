@@ -10,6 +10,13 @@ const locationTemplate = document.querySelector("#location-template").innerHTML;
 // 由于在html文件配置了socketio js
 const socket = io();
 
+// parse从表格传递过来的query string,并将其变为object形式,由key:value组成
+const { username, room } = Qs.parse(location.search, {
+	ignoreQueryPrefix: true
+});
+
+console.log(`username is ${username}, room is ${room}`)
+
 socket.on("message", message => {
 	console.log(message);
 	// Compile the template with data
@@ -26,11 +33,13 @@ socket.on("message", message => {
 
 // client listen for locationMessage event
 socket.on("locationMessage", message => {
-    // 接收的是url object, 包含 url === {url:String,createdAt:timeStamp}
+	// 接收的是url object, 包含 url === {url:String,createdAt:timeStamp}
 	console.log(message);
 	const html = Mustache.render(locationTemplate, {
 		locationURL: message.url,
-		createdAt: moment(message.createdAt).format("dddd, MMMM Do YYYY, h:mm:ss a")
+		createdAt: moment(message.createdAt).format(
+			"dddd, MMMM Do YYYY, h:mm:ss a"
+		)
 	});
 	$messages.insertAdjacentHTML("beforeend", html);
 });
@@ -77,3 +86,6 @@ $sendLocationButton.addEventListener("click", () => {
 		});
 	});
 });
+
+// 从client向server发送event伴随username和room
+socket.emit("join", { username, room });
