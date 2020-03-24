@@ -39,16 +39,25 @@ io.on("connection", socket => {
 			// 有错误call callback with error
 			return callback(error);
 		}
-		console.log(user);
 		// Join a room, 只能在server使用
 		// 有room概念后给了我们新的一种发送event的形式，就是发送event到特定room
 		socket.join(user.room);
 		// Emit message in the same room
-		socket.emit("message", generateMessage("Admin","Welcome!"));
+		socket.emit("message", generateMessage("Admin", "Welcome!"));
 
 		socket.broadcast
 			.to(user.room)
-			.emit("message", generateMessage("Admin", `${user.username} has joined!`));
+			.emit(
+				"message",
+				generateMessage("Admin", `${user.username} has joined!`)
+			);
+
+        // when user join, send a new event with all user data and room data
+        // 在用户离开或加入时能够获得现在本聊天室的用户列表,便于client端显示
+		io.to(user.room).emit("roomData", {
+			room: user.room,
+			users: getUsersInRoom(user.room)
+		});
 		// 一切顺利调用callback
 		callback();
 	});
@@ -68,7 +77,10 @@ io.on("connection", socket => {
 		}
 
 		// emit message to their current room
-		io.to(user.room).emit("message", generateMessage(user.username, messageInput));
+		io.to(user.room).emit(
+			"message",
+			generateMessage(user.username, messageInput)
+		);
 
 		// setup the server to send back acknowledgement
 		callback();
@@ -86,7 +98,7 @@ io.on("connection", socket => {
 		io.to(user.room).emit(
 			"locationMessage",
 			generateLocationMessage(
-                user.username,
+				user.username,
 				`https://google.com/maps?q=${latitude},${longitude}`
 			)
 		);
@@ -102,8 +114,16 @@ io.on("connection", socket => {
 		if (user) {
 			io.to(user.room).emit(
 				"message",
-				generateMessage("Admin", `${user.username} has left room ${user.room}`)
+				generateMessage(
+					"Admin",
+					`${user.username} has left room ${user.room}`
+				)
 			);
+			// when user leaves, send a new event with all user data and room data
+			io.to(user.room).emit("roomData", {
+				room: user.room,
+				users: getUsersInRoom(user.room)
+			});
 		}
 	});
 });
